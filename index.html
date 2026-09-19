@@ -11,44 +11,47 @@
 </head>
 <body>
     <h2>Internal Endpoint & Directory Fuzzer</h2>
-    <div id="results">Scanning internal server at http://127.0.0.1:31326 ...</div>
+    <div id="results">Scanning internal server, please wait...</div>
 
     <script>
-        const baseUrl = 'http://127.0.0.1:31326';
-        
-        // List of common CTF endpoints, files, and directories to check
-        const paths = [
-            '/', '/flag', '/flag.txt', '/admin', '/api', '/debug', '/status', 
-            '/robots.txt', '/source', '/file', '/files', '/download',
-            '/config', '/env', '/secret', '/app.js', '/server.js',
-            '/package.json', '/metrics', '/health', '/info', '/index.js'
-        ];
+        async function runScan() {
+            const baseUrl = 'http://127.0.0.1:31326';
+            const paths = [
+                '/', '/flag', '/flag.txt', '/admin', '/api', '/debug', '/status', 
+                'robots.txt', '/source', '/file', '/files', '/download',
+                '/config', '/env', '/secret', '/app.js', '/server.js',
+                '/package.json', '/metrics', '/health', '/info', '/index.js'
+            ];
 
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = ''; // Clear loading text
+            let htmlContent = '';
 
-        paths.forEach(path => {
-            const target = baseUrl + path;
-            
-            fetch(target)
-                .then(async res => {
+            // Map all paths to fetch promises and wait for ALL of them to complete
+            const promises = paths.map(async (path) => {
+                try {
+                    const res = await fetch(baseUrl + path);
                     const text = await res.text();
-                    const cssClass = res.status === 200 ? 'ok' : 'other';
                     
-                    // Display status code, path, and response length on the page
-                    let html = `<div class="${cssClass}">[Status: ${res.status}] Path: ${path} (Bytes: ${text.length})</div>`;
-                    
-                    // If it returned content, show a snippet of it
-                    if (text.length > 0 && text.length < 1000) {
-                        html += `<pre>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
+                    // Filter out standard 404 pages to keep the output clean, or show everything
+                    if (res.status !== 404) {
+                        htmlContent += `<div class="ok">[Status: ${res.status}] Path: ${path} (Bytes: ${text.length})</div>`;
+                        if (text.length > 0 && text.length < 2000) {
+                            htmlContent += `<pre>${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
+                        }
+                        htmlContent += '<hr style="border-color: #333;">';
                     }
-                    
-                    resultsDiv.innerHTML += html + '<hr style="border-color: #333;">';
-                })
-                .catch(err => {
-                    // Ignore closed or unreachable ports/paths silently
-                });
-        });
+                } catch (err) {
+                    // Ignore connection errors for closed ports/paths
+                }
+            });
+
+            // Wait until every single fetch request finishes
+            await Promise.all(promises);
+
+            // Update the DOM only after everything is gathered, ensuring it prints in the PDF
+            document.getElementById('results').innerHTML = htmlContent || 'Scan finished, but no active endpoints responded.';
+        }
+
+        runScan();
     </script>
 </body>
 </html>
